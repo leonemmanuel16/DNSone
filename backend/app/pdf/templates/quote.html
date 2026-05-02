@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>Cotización {{ project.code }}</title>
+  <style>
+    @page {
+      size: Letter;
+      margin: 1.5cm 1.2cm 2cm 1.2cm;
+      @bottom-right {
+        content: "Página " counter(page) " de " counter(pages);
+        font-size: 9pt;
+        color: #888;
+      }
+      @bottom-left {
+        content: "{{ project.code }} — {{ company.short }}";
+        font-size: 9pt;
+        color: #888;
+      }
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      font-family: "DejaVu Sans", "Liberation Sans", Arial, sans-serif;
+      font-size: 10pt;
+      color: #222;
+      margin: 0;
+      padding: 0;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 3px solid #0a3d62;
+      padding-bottom: 12px;
+      margin-bottom: 18px;
+    }
+    .brand {
+      font-size: 22pt;
+      font-weight: bold;
+      color: #0a3d62;
+      letter-spacing: 1px;
+    }
+    .brand small {
+      display: block;
+      font-size: 9pt;
+      font-weight: normal;
+      color: #555;
+      letter-spacing: 0;
+    }
+    .quote-meta {
+      text-align: right;
+      font-size: 9pt;
+    }
+    .quote-meta .title {
+      font-size: 14pt;
+      font-weight: bold;
+      color: #0a3d62;
+      margin-bottom: 6px;
+    }
+    .quote-meta .folio {
+      font-size: 11pt;
+      color: #d35400;
+      font-weight: bold;
+    }
+
+    .section-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+    .panel {
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 10px 12px;
+    }
+    .panel h3 {
+      margin: 0 0 6px 0;
+      font-size: 9pt;
+      color: #0a3d62;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .panel p { margin: 2px 0; }
+
+    table.items {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+    }
+    table.items th {
+      background: #0a3d62;
+      color: #fff;
+      font-weight: 600;
+      font-size: 9pt;
+      padding: 7px 8px;
+      text-align: left;
+    }
+    table.items td {
+      padding: 6px 8px;
+      border-bottom: 1px solid #eee;
+      vertical-align: top;
+    }
+    table.items tr:nth-child(even) td {
+      background: #fafbfc;
+    }
+    table.items td.num,
+    table.items th.num { text-align: right; }
+    table.items td.center,
+    table.items th.center { text-align: center; }
+
+    .totals {
+      width: 50%;
+      margin-left: auto;
+      margin-top: 12px;
+      border-collapse: collapse;
+    }
+    .totals td {
+      padding: 5px 8px;
+      border-bottom: 1px solid #eee;
+    }
+    .totals td.label { color: #555; }
+    .totals td.value { text-align: right; font-variant-numeric: tabular-nums; }
+    .totals tr.grand td {
+      font-weight: bold;
+      font-size: 12pt;
+      border-top: 2px solid #0a3d62;
+      border-bottom: none;
+      color: #0a3d62;
+    }
+
+    .notes {
+      margin-top: 16px;
+      padding: 10px 12px;
+      background: #f7f9fb;
+      border-left: 3px solid #0a3d62;
+      font-size: 9pt;
+    }
+
+    .footer-info {
+      margin-top: 24px;
+      font-size: 8pt;
+      color: #888;
+      text-align: center;
+      border-top: 1px solid #ddd;
+      padding-top: 10px;
+    }
+
+    .pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 8pt;
+      font-weight: 600;
+      background: #e8f4f8;
+      color: #0a3d62;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div>
+      <div class="brand">
+        DNS One
+        <small>{{ company.name }} · {{ company.tagline }}</small>
+      </div>
+    </div>
+    <div class="quote-meta">
+      <div class="title">COTIZACIÓN</div>
+      <div>Folio interno: <strong>{{ project.code }}</strong></div>
+      {% if project.bind_folio %}
+      <div>Folio Bind: <span class="folio">{{ project.bind_folio }}</span></div>
+      {% endif %}
+      <div>Fecha: {{ today.strftime("%d/%m/%Y") }}</div>
+      {% if project.valid_until %}
+      <div>Válida hasta: {{ project.valid_until.strftime("%d/%m/%Y") }}</div>
+      {% endif %}
+      <div>Moneda: <span class="pill">{{ project.currency }}</span></div>
+    </div>
+  </div>
+
+  <div class="section-grid">
+    <div class="panel">
+      <h3>Cliente</h3>
+      <p><strong>{{ customer.name if customer else "—" }}</strong></p>
+      {% if customer and customer.tax_id %}<p>RFC: {{ customer.tax_id }}</p>{% endif %}
+      {% if customer and customer.contact_name %}<p>Att.: {{ customer.contact_name }}</p>{% endif %}
+      {% if customer and customer.email %}<p>{{ customer.email }}</p>{% endif %}
+      {% if customer and customer.phone %}<p>{{ customer.phone }}</p>{% endif %}
+      {% if customer and customer.billing_address %}<p>{{ customer.billing_address }}</p>{% endif %}
+    </div>
+    <div class="panel">
+      <h3>Proyecto</h3>
+      <p><strong>{{ project.name }}</strong></p>
+      <p>Estatus: <span class="pill">{{ project.status }}</span></p>
+      {% if project.currency != "USD" or project.exchange_rate != 1 %}
+      <p>Tipo de cambio: 1 USD = {{ project.exchange_rate }} MXN</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <table class="items">
+    <thead>
+      <tr>
+        <th class="center" style="width:4%">#</th>
+        <th style="width:14%">SKU</th>
+        <th>Descripción</th>
+        <th class="num" style="width:8%">Cant.</th>
+        <th class="num" style="width:13%">Precio unit.</th>
+        <th class="num" style="width:8%">Desc. %</th>
+        <th class="num" style="width:13%">Importe</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in items %}
+      <tr>
+        <td class="center">{{ item.position }}</td>
+        <td>{{ item.sku }}</td>
+        <td>{{ item.description }}</td>
+        <td class="num">{{ "%.2f"|format(item.qty|float) }}</td>
+        <td class="num">{{ "{:,.2f}".format(item.unit_price|float) }}</td>
+        <td class="num">{{ "%.2f"|format(item.discount_pct|float) }}%</td>
+        <td class="num">{{ "{:,.2f}".format(item.line_sale_total|float) }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" style="text-align:center; color:#999; padding:20px">Sin partidas</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <table class="totals">
+    <tr>
+      <td class="label">Subtotal</td>
+      <td class="value">{{ "{:,.2f}".format(project.subtotal_sale|float) }} {{ project.currency }}</td>
+    </tr>
+    {% if project.discount_amount and project.discount_amount > 0 %}
+    <tr>
+      <td class="label">Descuento global ({{ "%.2f"|format(project.discount_pct|float) }}%)</td>
+      <td class="value">-{{ "{:,.2f}".format(project.discount_amount|float) }} {{ project.currency }}</td>
+    </tr>
+    {% endif %}
+    <tr>
+      <td class="label">IVA</td>
+      <td class="value">{{ "{:,.2f}".format(project.tax_total|float) }} {{ project.currency }}</td>
+    </tr>
+    <tr class="grand">
+      <td class="label">TOTAL</td>
+      <td class="value">{{ "{:,.2f}".format(project.grand_total|float) }} {{ project.currency }}</td>
+    </tr>
+  </table>
+
+  {% if project.notes %}
+  <div class="notes">
+    <strong>Notas:</strong><br>
+    {{ project.notes }}
+  </div>
+  {% endif %}
+
+  <div class="notes">
+    <strong>Condiciones generales:</strong><br>
+    Precios en {{ project.currency }}. Vigencia de la cotización
+    {% if project.valid_until %}hasta el {{ project.valid_until.strftime("%d/%m/%Y") }}{% else %}sujeta a confirmación{% endif %}.
+    Tiempos de entrega sujetos a disponibilidad de proveedor.
+  </div>
+
+  <div class="footer-info">
+    {{ company.name }} · {{ company.email }} · {{ company.website }}<br>
+    Generado por DNS One el {{ today.strftime("%d/%m/%Y") }}
+  </div>
+
+</body>
+</html>
