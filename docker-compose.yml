@@ -1,0 +1,79 @@
+# =============================================================================
+# DNS One — Docker Compose (desarrollo local)
+# =============================================================================
+# Servicios:
+#   db        Postgres 16
+#   backend   FastAPI + APScheduler
+#   frontend  Next.js 14
+#
+# Uso:
+#   docker compose up -d --build
+#   docker compose exec backend alembic upgrade head
+#   docker compose exec backend python -m app.scripts.seed
+# =============================================================================
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: dnsone-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-dnsone}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dnsone_change_me}
+      POSTGRES_DB: ${POSTGRES_DB:-dns_one}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dnsone} -d ${POSTGRES_DB:-dns_one}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: dnsone-backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-dnsone}:${POSTGRES_PASSWORD:-dnsone_change_me}@db:5432/${POSTGRES_DB:-dns_one}
+    volumes:
+      - ./backend:/app
+      - pdf-output:/app/pdf_output
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      bash -c "
+        alembic upgrade head &&
+        uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+      "
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: dnsone-frontend
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+      NODE_ENV: development
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    command: npm run dev
+
+volumes:
+  postgres-data:
+  pdf-output:
